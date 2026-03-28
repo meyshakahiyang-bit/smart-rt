@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Manajemen RT Pro - Fitur Lengkap</title>
+    
+    <style>
+        :root {
+            --bg-dark: #0f172a; --bg-card: #1e293b; --accent-gold: #d4af37;
+            --accent-green: #22c55e; --accent-red: #ef4444; --text-main: #f1f5f9;
+            --text-dim: #94a3b8; --border-gold: rgba(212, 175, 55, 0.4);
+        }
+
+        /* --- LOCK SCREEN & LAYOUT --- */
+        * { box-sizing: border-box; font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
+         html, body { height: 100dvh; width: 100vw; margin: 0; overflow: hidden;background: var(--bg-dark); color: var(--text-main); }
+        
+        /* Pastikan Topbar memiliki z-index paling tinggi */
+.top-section { 
+    flex-shrink: 0; 
+    background: var(--bg-card); 
+    border-bottom: 1px solid var(--border-gold); 
+    z-index: 9999; /* Dinaikkan agar di atas sidebar */
+    position: relative; 
+} 
+
+.overlay { 
+    position: fixed; 
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 23, 42, 0.9); /* Darker & cleaner */
+    backdrop-filter: blur(10px); 
+    display: none; 
+    justify-content: center; 
+    align-items: center; 
+    z-index: 11000;
+    padding: 15px;
+}
+        .main-content { height: calc(100dvh - 105px); overflow: hidden; position: relative; }
+
+        /* --- DASHBOARD & RIWAYAT ATAS-BAWAH --- */
+        /* GANTI KODE DI BARIS 40 DENGAN INI */
+.dashboard-scroll { 
+    height: 100%; 
+    display: flex; 
+    flex-direction: column; 
+    padding: 15px;
+    /* Tambahan padding bawah agar tidak tertutup navigasi HP */
+    padding-bottom: 80px !important; 
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+        .history-wrapper { flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); border: 1px solid var(--border-gold); border-radius: 12px; overflow: hidden; min-height: 0; }
+       
+        /* Mengecilkan baris riwayat agar lebih padat */
+.history-row { 
+    display: flex; 
+    align-items: center; 
+    padding: 4px 6px !important; /* Dipersempit dari 6px/8px */
+    border-bottom: 1px solid rgba(255,255,255,0.02); 
+}
+
+.history-row div {
+    font-size: 10px !important; /* Ukuran teks riwayat lebih kecil */
+}
+
+        /* --- TABLE STICKY & FOOTER --- */
+        .table-container { 
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    padding: 0; /* Pastikan nol agar mepet ke pinggir */
+}
+.history-row:hover {
+    background: rgba(255,255,255,0.05);
+    transition: 0.2s;
+}
+        table { border-collapse: separate; border-spacing: 0; width: max-content; }
+        th, td { padding: 10px 8px; text-align: center; border: 0.5px solid rgba(212, 175, 55, 0.2); font-size: 11px; }
+
+        thead th { position: sticky; top: 0; z-index: 100; background: #1e293b; color: var(--accent-gold); border-bottom: 2px solid var(--border-gold); }
+        tfoot td { position: sticky; bottom: 0; z-index: 100; background: #1e293b; color: var(--accent-gold); border-top: 2px solid var(--border-gold); font-weight: bold; }
+
+        .st-left-1 { position: sticky; left: 0; z-index: 80; background: #0f172a !important; min-width: 35px; }
+        .st-left-2 { 
+    position: sticky; 
+    left: 35px; 
+    z-index: 80; 
+    background: #0f172a !important; 
+    min-width: 80px; /* Dikurangi dari 100px */
+    max-width: 85px;
+    border-right: 2px solid var(--border-gold) !important; 
+}
+        .st-right { position: sticky; right: 0; z-index: 80; background: #161e2f !important; border-left: 2px solid var(--border-gold) !important; font-weight: bold; }
+        thead th.st-left-1, thead th.st-left-2, thead th.st-right,
+        tfoot td.st-left-1, tfoot td.st-left-2, tfoot td.st-right { z-index: 150; }
+
+        /* Navigation */
+        .nav-tabs { display: flex; background: var(--bg-card); }
+        .tab {
+    flex: 1;
+    padding: 8px 5px; /* Sesuaikan padding agar tidak terlalu tinggi */
+    text-align: center;
+    font-size: 10px; /* Ukuran teks sedikit diperkecil agar pas */
+    font-weight: bold;
+    cursor: pointer;
+    color: var(--text-dim);
+    display: flex;
+    flex-direction: column; /* Membuat susunan vertikal (Atas-Bawah) */
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    transition: 0.3s;
+}
+.arrow {
+    font-size: 16px;
+    display: block;
+    transform: rotate(180deg); /* default ke bawah */
+    transition: 0.3s ease;
+    line-height: 14px;
+}
+
+/* Saat tab aktif */
+.tab.active .arrow {
+    transform: rotate(0deg); /* jadi ke atas */
+    color: var(--accent-gold);
+}
+
+.tab i {
+    font-size: 14px; /* Ukuran panah lebih besar dari teks */
+    margin-bottom: 2px;
+}
+
+.tab.active {
+    color: var(--accent-gold);
+    border-bottom: 3px solid var(--accent-gold);
+}
+
+        /* Sidebar & Modals */
+        .sidebar {
+    position: fixed;
+    left: -250px;
+    top: 50%; /* Di tengah vertikal */
+    transform: translateY(-50%);
+    width: 210px; /* Lebih ramping */
+    height: 70dvh;
+    background: rgba(30, 41, 59, 0.98);
+    backdrop-filter: blur(15px);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 10000;
+    padding: 25px 15px;
+    border: 1px solid var(--accent-gold);
+    border-radius: 45px; /* Bentuk Oval */
+   box-shadow: 0 6px 18px rgba(0,0,0,0.35);
+    display: flex;
+    flex-direction: column;
+    visibility: hidden;
+    opacity: 0;
+}
+
+/* Tambahkan class active ini di bawahnya */
+.sidebar.active {
+    left: 15px;
+    visibility: visible;
+    opacity: 1;
+}
+        .sidebar-item { padding: 14px 10px;  cursor: pointer; display: flex; gap: 10px; font-size: 14px; }
+        
+        .card { background: var(--bg-card); width: 100%; max-width: 360px; padding: 25px; border-radius: 20px; border: 1px solid var(--border-gold); }
+        input, select { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 8px; margin-bottom: 10px; }
+        .btn-gold { background: var(--accent-gold); color: #000; border: none; padding: 12px; border-radius: 10px; font-weight: 800; width: 100%; cursor: pointer; }
+        /* Efek Sensor Blur untuk Nama Warga */
+.blur-text {
+    filter: blur(3px); /* dari 5px → 2px */
+    user-select: none;
+    pointer-events: none;
+    opacity: 0.85; /* sedikit lebih jelas */
+    transition: 0.3s;
+}
+
+/* Kotak Ceklis Otomatis Merah jika Kosong */
+input[type="checkbox"].check-kas-view {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 17px;
+    height: 17px;
+    border-radius: 5px;
+    display: inline-grid;
+    place-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: rgba(30, 41, 59, 0.5);
+}
+
+/* JIKA KOSONG (Belum Ceklis): Border Merah Lembut */
+input[type="checkbox"].check-kas-view:not(:checked) {
+    border: 1.5px solid rgba(239, 68, 68, 0.4); /* Merah transparan agar tetap elegan */
+}
+
+/* JIKA SUDAH DIISI: Border Emas & Simbol Emas */
+input[type="checkbox"].check-kas-view:checked {
+    border: 1.5px solid var(--accent-gold);
+    background: rgba(212, 175, 55, 0.08);
+}
+
+input[type="checkbox"].check-kas-view::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    transform: scale(0);
+    background-color: var(--accent-gold); 
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+    transition: 0.2s transform;
+}
+
+input[type="checkbox"].check-kas-view:checked::before {
+    transform: scale(1);
+}
+
+/* Tetap Terlihat Jelas di Mode Warga (Disabled) */
+input[type="checkbox"].check-kas-view:disabled {
+    opacity: 1 !important;
+}
+/* Animasi Panah Scroll */
+/* Animasi Panah Melompat */
+.scroll-indicator {
+    position: absolute;
+    bottom: 8px;
+    right: 12px;
+    font-size: 12px;
+    color: var(--accent-gold);
+    animation: bounce-panah 2s infinite;
+    pointer-events: none;
+    opacity: 0.8;
+    z-index: 10;
+    font-weight: bold;
+}
+
+@keyframes bounce-panah {
+    0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+    40% {transform: translateY(-5px);}
+    60% {transform: translateY(-3px);}
+}
+
+/* Scrollbar tipis untuk area riwayat */
+.history-scroll-area::-webkit-scrollbar {
+    width: 2px;
+}
+.history-scroll-area::-webkit-scrollbar-thumb {
+    background: var(--border-gold);
+}
+input[type="text"] {
+    caret-color: var(--accent-gold);
+}
+.watermark-divider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 20px 0;
+    opacity: 0.5;
+}
+
+.watermark-divider span {
+    flex: 1;
+    height: 0.7px;
+opacity: 0.7;
+    background: linear-gradient(to right, transparent, var(--accent-gold), transparent);
+}
+
+.watermark-divider small {
+    font-size: 8px;
+    color: var(--accent-gold);
+    letter-spacing: 1px;
+    white-space: nowrap;
+}
+
+/* WRAPPER */
+.topbar-wrapper {
+    display: block; /* penting agar tidak flex */
+}
+
+/* TOPBAR UTAMA */
+.topbar-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 15px;
+}
+
+/* BUTTON & TITLE */
+.menu-btn {
+    cursor: pointer;
+    color: var(--accent-gold);
+    font-size: 20px;
+}
+
+.title {
+    font-weight: bold;
+    color: var(--accent-gold);
+}
+
+.spacer {
+    width: 20px;
+}
+
+.topbar-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px 8px 10px; /* Jarak atas bawah */
+    gap: 10px; /* Jarak antara garis dan teks */
+}
+
+.topbar-divider .line {
+    flex-grow: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--accent-gold), transparent);
+    opacity: 0.5;
+}
+
+/* GANTI CSS .watermark-neon DENGAN INI */
+.watermark-neon {
+    font-size: 10px;
+    font-weight: bold;
+    color: var(--accent-gold); /* Warna Emas Solid */
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    /* Efek Glow Neon DIHAPUS agar terlihat bersih */
+    text-shadow: none; 
+    white-space: nowrap;
+}
+#mainTable {
+    scroll-behavior: smooth; /* Membuat gerakan geser menjadi meluncur pelan */
+}
+/* --- MODE FULLSCREEN DENGAN TOPBAR TETAP TAMPIL --- */
+body.full-layout {
+    overflow: hidden !important;
+    background: #000 !important;
+}
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {transform: translateY(0) translateX(-50%);}
+    40% {transform: translateY(-5px) translateX(-50%);}
+    60% {transform: translateY(-3px) translateX(-50%);}
+}
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+</head>
+<body>
+
+    <header class="top-section">
+
+ <div class="topbar-wrapper">
+    <div class="topbar-main">
+        <div onclick="toggleSidebar()" class="menu-btn">☰</div>
+        <div class="title">MANAJEMEN RT 02/19</div>
+        <div class="spacer"></div>
+    </div>
+    
+    <div class="topbar-divider">
+        <div class="line"></div>
+        <div class="watermark-neon">G-MEY POETRA</div>
+        <div class="line"></div>
+    </div>
+</div>
+
+    <!-- TOPBAR 2 -->
+    <div style="display:flex; gap:8px; padding:8px 10px; align-items:center;">
+
+        <!-- SEARCH -->
+        <input type="text" id="searchInput" placeholder="Cari warga..."
+            oninput="renderAll()"
+            style="flex:1; border-radius:20px; padding:6px 12px; font-size:12px; margin:0;">
+
+        <!-- BULAN -->
+        <select id="bulan" onchange="renderAll()"
+            style="width:70px; font-size:11px; padding:5px; margin:0;"></select>
+
+        <!-- TAHUN -->
+        <select id="tahun" onchange="renderAll()"
+            style="width:70px; font-size:11px; padding:5px; margin:0;">
+        </select>
+
+    </div>
+
+    <!-- NAV -->
+    <nav class="nav-tabs">
+    <div id="t-dash" class="tab active" onclick="switchTab('dash')">
+    <span class="arrow">▾</span>
+    <span>DASHBOARD</span>
+</div>
+
+<div id="t-kas" class="tab" onclick="switchTab('kas')">
+    <span class="arrow">▾</span>
+    <span>KAS RT</span>
+</div>
+
+<div id="t-tabungan" class="tab" onclick="switchTab('tabungan')">
+    <span class="arrow">▾</span>
+    <span>TABUNGAN</span>
+</div>
+</nav>
+
+</header>
+
+    <main class="main-content">
+        <div id="dashboard" class="dashboard-scroll"></div>
+        <div id="mainTable" class="table-container" style="display:none;"></div>
+    </main>
+
+    <aside id="sidebar" class="sidebar">
+    <div class="sidebar-item" onclick="openModal('addWargaOverlay')"><span>👤</span> Tambah Warga</div>
+    <div class="sidebar-item" onclick="openEditWarga()"><span>✏️</span> Edit Nama Warga</div>
+    <div class="sidebar-item" onclick="openDeleteWarga()"><span>🗑️</span> Hapus Warga</div>
+    <div class="sidebar-item" onclick="openExp('kas')"><span>📉</span> Pengeluaran Kas</div>
+    <div class="sidebar-item" onclick="openExp('tabungan')"><span>💰</span> Tarik Tabungan</div>
+    
+    <div class="sidebar-item" onclick="exportData()"><span>📥</span> Backup Data</div>
+    <div class="sidebar-item" onclick="triggerLoadData()"><span>📤</span> Load Data (Restore)</div>
+    
+    <div class="sidebar-item" onclick="exportExcel()"><span>📄</span> Export Excel</div>
+    
+    <div class="sidebar-item" onclick="openModal('resetOverlay')" style="color:var(--accent-red)"><span>⚠️</span> Reset Aplikasi</div>
+
+    <div class="watermark-divider">
+        <span></span>
+        <small>G-MEY POETRA</small>
+        <span></span>
+    </div>
+    <button class="btn-gold" style="margin-top:30px; background:#334155; color:white;" onclick="logoutAdmin()">LOGOUT</button>
+</aside>
+        
+    <div id="adminOverlay" class="overlay">
+        <div class="card">
+            <h3 style="text-align:center; color:var(--accent-gold);">PIN ADMIN</h3>
+            <input type="password" id="pinInput" style="text-align:center; letter-spacing:8px;">
+            <button class="btn-gold" onclick="checkPin()">MASUK</button>
+            <button class="btn-gold" style="background:none; color:var(--text-dim);" onclick="closeModal('adminOverlay')">BATAL</button>
+        </div>
+    </div>
+
+   <div id="addWargaOverlay" class="overlay">
+    <div class="card">
+        <h3 style="color:var(--accent-gold); text-align:center;">TAMBAH WARGA BARU</h3>
+        
+        <input type="text" id="newWargaName" placeholder="Nama Lengkap (Huruf Kapital)">
+        
+        <div style="margin-top: 10px;">
+            <label style="display:block; font-size:10px; color:var(--accent-gold); margin-bottom:5px; font-weight:bold;">SETORAN AWAL (RP)</label>
+            <input type="text" id="addNominal" oninput="formatInputRibuan(this)" placeholder="Contoh: 50.000" 
+                   style="width:100%; background:rgba(0,0,0,0.3); border:1px solid var(--border-gold); color:white; padding:12px; border-radius:8px; font-weight:bold;">
+        </div>
+        
+        <div style="display: flex; gap: 20px; justify-content: center; margin: 15px 0; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px;">
+            <label style="font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                <input type="checkbox" id="checkKas" checked style="width: 18px; margin: 0;"> KAS
+            </label>
+            <label style="font-size: 12px; display: flex; align-items: center; gap: 5px;">
+                <input type="checkbox" id="checkTabungan" checked style="width: 18px; margin: 0;"> TABUNGAN
+            </label>
+        </div>
+
+        <button class="btn-gold" onclick="saveNewWarga()">SIMPAN DATA</button>
+        <button class="btn-gold" style="background:none; color:var(--text-dim); margin-top: 5px;" onclick="closeModal('addWargaOverlay');">BATAL</button>
+    </div>
+</div>
+
+    <div id="editWargaOverlay" class="overlay">
+    <div class="card">
+        <h3 style="color:var(--accent-gold); text-align:center; margin-bottom:15px;">EDIT DATA WARGA</h3>
+        <label style="font-size: 10px; color: var(--text-dim);">PILIH WARGA:</label>
+        <select id="selectWargaEdit"></select>
+        
+        <label style="font-size: 10px; color: var(--text-dim);">NAMA BARU:</label>
+        <input type="text" id="editWargaName" placeholder="Masukkan Nama Baru">
+        
+        <div style="display: flex; gap: 15px; justify-content: center; margin: 15px 0; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px; border: 1px solid rgba(212,175,55,0.2);">
+            <label style="font-size: 11px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="editCheckKas" checked style="width:16px; height:16px;"> KAS
+            </label>
+            <label style="font-size: 11px; display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" id="editCheckTabungan" checked style="width:16px; height:16px;"> TABUNGAN
+            </label>
+        </div>
+
+        <button class="btn-gold" onclick="saveEditWarga()">SIMPAN PERUBAHAN</button>
+        <button class="btn-gold" style="background:none; color:var(--text-dim); margin-top:5px;" onclick="closeModal('editWargaOverlay')">BATAL</button>
+    </div>
+</div>
+<div id="deleteWargaOverlay" class="overlay">
+    <div class="card">
+        <h3 style="color:var(--accent-red); text-align:center;">HAPUS DATA WARGA</h3>
+        
+        <select id="selectWargaDelete" style="width: 100%; margin-bottom: 15px;"></select>
+        
+        <div style="display: flex; gap: 15px; justify-content: center; margin: 15px 0; background: rgba(239,68,68,0.1); padding: 10px; border-radius: 10px;">
+            <label style="font-size: 11px; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="delCheckKas" checked> HAPUS KAS
+            </label>
+            <label style="font-size: 11px; display: flex; align-items: center; gap: 8px;">
+                <input type="checkbox" id="delCheckTabungan" checked> HAPUS TABUNGAN
+            </label>
+        </div>
+        
+        <button class="btn-gold" style="background:var(--accent-red); color:white;" onclick="confirmDeleteWarga()">HAPUS PERMANEN</button>
+        <button class="btn-gold" style="background:none; color:var(--text-dim); margin-top:5px;" onclick="closeModal('deleteWargaOverlay')">BATAL</button>
+    </div>
+</div>
+    <div id="expOverlay" class="overlay">
+        <div class="card">
+            <h3 id="expTitle">PENGELUARAN</h3>
+            <input type="date" id="expDate">
+            <select id="expNama" style="display:none;"></select>
+            <input type="text" id="expKet" placeholder="Keterangan">
+            <input type="text" id="expNom" placeholder="Nominal" oninput="formatInputRibuan(this)">
+            <button class="btn-gold" onclick="saveExp()">KONFIRMASI</button>
+            <button class="btn-gold" style="background:none; color:var(--text-dim);" onclick="closeModal('expOverlay')">BATAL</button>
+        </div>
+    </div>
+<div id="resetOverlay" class="overlay">
+    <div class="card">
+        <h3 style="color:var(--accent-red); text-align:center;">⚠️ RESET DATA</h3>
+        <p style="font-size: 11px; color: var(--text-dim); text-align:center;">Pilih data yang ingin dihapus permanen:</p>
+        
+        <div style="text-align: left; margin: 15px 0; display: flex; flex-direction: column; gap: 10px; background: rgba(0,0,0,0.2); padding: 15px; border-radius: 10px;">
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 13px;">
+                <input type="checkbox" id="resetKasCheck" checked style="width:18px; height:18px;"> Hapus Semua Data Kas
+            </label>
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 13px;">
+                <input type="checkbox" id="resetTabunganCheck" checked style="width:18px; height:18px;"> Hapus Semua Data Tabungan
+            </label>
+        </div>
+
+        <button class="btn-gold" onclick="confirmReset()" style="background: var(--accent-red); color:white;">HAPUS SEKARANG</button>
+        <button class="btn-gold" style="background:none; color:var(--text-dim); margin-top:5px;" onclick="closeModal('resetOverlay')">BATAL</button>
+    </div>
+</div>
+</div>
+    <script>
+        // --- CORE DATA ---
+        let isAdmin = false;
+        let db;
+
+try {
+    db = JSON.parse(localStorage.getItem('rt_v4_final')) || { kas: [], tabungan: [] };
+} catch {
+    db = { kas: [], tabungan: [] };
+}
+        let currentTab = 'dash', currentExpType = '';
+
+        // Init Bulan
+        const bNames = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+        const bEl = document.getElementById("bulan");
+        bNames.forEach((m,i) => bEl.innerHTML += `<option value="${i}" ${i==new Date().getMonth()?'selected':''}>${m.substring(0,3)}</option>`);
+
+        function save() { 
+    localStorage.setItem('rt_v4_final', JSON.stringify(db)); 
+    localStorage.setItem('rt_backup_auto', JSON.stringify(db));
+}
+        function openModal(id) { document.getElementById(id).style.display = 'flex'; closeSidebar(); }
+        function closeModal(id) {
+    document.getElementById(id).style.display = 'none';
+    
+    // Cari semua input di dalam overlay ini dan kosongkan
+    const overlay = document.getElementById(id);
+    const inputs = overlay.querySelectorAll('input[type="text"], input[type="password"]');
+    inputs.forEach(inp => inp.value = "");
+    
+    // Khusus untuk input nominal (expNom) agar benar-benar bersih
+    if(document.getElementById("expNom")) document.getElementById("expNom").value = "";
+}
+        function toggleSidebar() {
+    const sb = document.getElementById('sidebar');
+    if (!isAdmin) {
+        openModal('adminOverlay');
+        return;
+    }
+    // Menggunakan classList toggle agar sesuai dengan CSS .active di atas
+    sb.classList.toggle('active');
+}
+
+// Tambahkan juga fungsi close agar saat buka modal, sidebar menutup
+function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('active');
+}
+        
+        function checkPin() {
+    const input = document.getElementById('pinInput').value;
+    // PIN Bapak "914215" sekarang disamarkan dalam format Base64:
+    const secret = "OTE0MjE1"; 
+    
+    if (btoa(input) === secret) {
+        isAdmin = true;
+        closeModal('adminOverlay');
+        renderAll();
+        alert("Akses Admin Diterima.");
+    } else {
+        alert("PIN Salah! Akses ditolak.");
+        document.getElementById('pinInput').value = ""; // Mengosongkan kotak input jika salah
+    }
+}
+        function logoutAdmin() { isAdmin=false; closeSidebar(); renderAll(); }
+
+        function switchTab(t) {
+    currentTab = t;
+    
+    // Reset semua tab menjadi tidak aktif dan hapus tanda panah aktif jika perlu
+    document.querySelectorAll('.tab').forEach(el => {
+        el.classList.remove('active');
+        // Opsional: Anda bisa membiarkan panah tetap ada atau mengubahnya saat aktif
+    });
+
+    document.getElementById('t-' + t).classList.add('active');
+    
+    // Pengaturan tampilan konten
+    document.getElementById('dashboard').style.display = t === 'dash' ? 'flex' : 'none';
+    document.getElementById('mainTable').style.display = t === 'dash' ? 'none' : 'block';
+    
+    renderAll();
+}
+
+        function renderAll() {
+    try {
+        if (currentTab === 'dash') renderDashboard();
+        else renderTable(currentTab);
+    } catch (e) {
+        console.error(e);
+        alert("ERROR: " + e.message);
+    }
+}
+function renderDashboard() {
+    let sK = 0, sT = 0, outK = 0, outT = 0;
+    const search = (document.getElementById("searchInput")?.value || "").toUpperCase();
+
+    // 1. HITUNG SALDO & PENGELUARAN
+    if (db && db.kas) {
+        db.kas.forEach(r => {
+            if (r.history) {
+                Object.values(r.history).forEach(bulan => {
+                    if (Array.isArray(bulan)) {
+                        bulan.forEach(v => { 
+                            sK += v; 
+                            if (v < 0) outK += Math.abs(v); 
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    if (db && db.tabungan) {
+        db.tabungan.forEach(r => {
+            if (r.history) {
+                Object.values(r.history).forEach(bulan => {
+                    if (Array.isArray(bulan)) {
+                        bulan.forEach(v => { 
+                            sT += v; 
+                            if (v < 0) outT += Math.abs(v); 
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    // 2. TAMPILKAN KE DASHBOARD
+    const dashboardEl = document.getElementById('dashboard');
+    if (!dashboardEl) return;
+
+    dashboardEl.innerHTML = `
+        <div style="flex-shrink:0; margin-bottom: 15px;">
+            <div style="background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(10px); padding: 18px; border-radius: 20px; text-align: center; margin-bottom: 12px; color: var(--text-main); border: 1px solid rgba(212, 175, 55, 0.5); box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+                <small style="font-weight: 800; font-size: 10px; color: var(--accent-gold); letter-spacing: 2px; text-transform: uppercase;">TOTAL SALDO GABUNGAN</small>
+                <div style="font-size: 26px; font-weight: 900; margin-top: 5px; font-family: 'Courier New', monospace;">Rp. ${(sK+sT).toLocaleString('id-ID')}</div>
+            </div>
+
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div style="background:var(--bg-card); padding:10px; border-radius:12px; text-align:center; border-top:3px solid var(--accent-gold);">
+                    <small style="color:var(--accent-gold); font-size:9px; font-weight:bold;">KAS RT</small>
+                    <div style="font-size:14px; font-weight:bold;">Rp. ${sK.toLocaleString('id-ID')}</div>
+                </div>
+                <div style="background:var(--bg-card); padding:10px; border-radius:12px; text-align:center; border-top:3px solid var(--accent-green);">
+                    <small style="color:var(--accent-green); font-size:9px; font-weight:bold;">TABUNGAN</small>
+                    <div style="font-size:14px; font-weight:bold;">Rp. ${sT.toLocaleString('id-ID')}</div>
+                </div>
+            </div>
+        </div>
+
+        <div style="flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); margin-bottom:14px; border: 1px solid var(--border-gold); border-radius: 12px; overflow: hidden; position: relative;">
+            <div style="background: #1e293b; padding: 10px 15px; border-bottom: 1px solid rgba(212,175,55,0.3); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 10px; color: var(--accent-gold); font-weight: bold;">RIWAYAT KAS</span>
+                <span style="font-size: 9px; color: var(--accent-red); font-weight: bold;">KELUAR: Rp. ${outK.toLocaleString('id-ID')}</span>
+            </div>
+            <div class="history-scroll-area" style="flex: 1; overflow-y: auto; padding: 4px;">
+                ${generateHistoryHTML('kas')}
+            </div>
+            <div style="position:absolute; bottom:2px; left:50%; transform:translateX(-50%); color:var(--accent-gold); font-size:10px; opacity:0.6; animation: bounce 2s infinite; pointer-events: none;">▼</div>
+        </div>
+
+        <div style="flex: 1; display: flex; flex-direction: column; background: rgba(0,0,0,0.2); border: 1px solid var(--border-gold); border-radius: 12px; overflow: hidden; position: relative;">
+            <div style="background: #1e293b; padding: 10px 15px; border-bottom: 1px solid rgba(34, 197, 94, 0.3); display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 10px; color: var(--accent-green); font-weight: bold;">RIWAYAT TABUNGAN</span>
+                <span style="font-size: 9px; color: var(--accent-red); font-weight: bold;">TARIK: Rp. ${outT.toLocaleString('id-ID')}</span>
+            </div>
+            <div class="history-scroll-area" style="flex: 1; overflow-y: auto; padding: 4px;">
+                ${generateHistoryHTML('tabungan')}
+            </div>
+            <div style="position:absolute; bottom:2px; left:50%; transform:translateX(-50%); color:var(--accent-green); font-size:10px; opacity:0.6; animation: bounce 2s infinite; pointer-events: none;">▼</div>
+        </div>
+    `;
+}
+        function generateHistoryHTML(type) {
+    let list = [];
+    db[type].forEach((r, wIdx) => {
+        if (r.nama.startsWith("HIDDEN_OUT:")) return;
+
+        if (r.history) {
+            Object.entries(r.history).forEach(([key, blnArr]) => {
+                blnArr.forEach((v, tglIdx) => {
+                    const isHidden = r.hidden_history && r.hidden_history[key] && r.hidden_history[key].includes(tglIdx);
+                    
+                    if (v < 0 && !isHidden) {
+                        let [thn, bIdx] = key.split("_");
+                        let tglFull = `${String(tglIdx + 1).padStart(2, '0')}/${String(parseInt(bIdx) + 1).padStart(2, '0')}/${thn}`;
+                        let murniNama = r.nama.replace("OUT:","").trim();
+                        
+                        list.push({ 
+                            tglSort: new Date(thn, bIdx, tglIdx+1).getTime(), 
+                            tglDisplay: tglFull, 
+                            namaAsli: murniNama,
+                            nom: v, wIdx, key, tglIdx, type 
+                        });
+                    }
+                });
+            });
+        }
+    });
+
+    if (list.length === 0) return `<div style="text-align:center; padding:20px; color:var(--text-dim); font-size:11px;">Belum ada riwayat</div>`;
+
+    // Urutkan dari yang terbaru
+    list.sort((a, b) => b.tglSort - a.tglSort);
+
+    // Render list dengan tambahan nomor urut (index + 1)
+    return list.map((item, index) => {
+        let contentTengah = "";
+
+        if (item.type === 'kas') {
+            contentTengah = `
+                <div style="width: 45%; text-align: center; font-size: 11px; color: var(--text-main); font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${item.namaAsli}
+                </div>`;
+        } else {
+            contentTengah = `
+                <div style="width: 45%; display: flex; align-items: center; font-size: 11px;">
+                    <div style="flex: 1.3; text-align: left; color: var(--text-main); ${!isAdmin ? 'filter: blur(2px); opacity: 0.9; user-select: none;' : ''} white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${item.namaAsli}
+                    </div>
+                    <div style="flex: 1; text-align: left; color: var(--text-dim); font-size: 9px; white-space: nowrap; padding-left: 2px;">
+                        (Tarik Dana)
+                    </div>
+                </div>`;
+        }
+
+        return `
+        <div class="history-row" style="display: flex; align-items: center; padding: 12px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); margin-bottom: 4px; border-radius: 8px;">
+            <div style="width: 25px; font-size: 9px; color: var(--text-dim); flex-shrink: 0;">${index + 1}.</div>
+            
+            <div style="width: 25%; font-size: 10px; color: var(--accent-gold); font-weight: bold;">
+                ${item.tglDisplay}
+            </div>
+
+            ${contentTengah}
+
+            <div style="width: 30%; display: flex; align-items: center; justify-content: flex-end; gap: 3px;">
+                <span style="color: var(--accent-red); font-weight: bold; font-size: 10px; white-space: nowrap;">
+                    -Rp.${Math.abs(item.nom).toLocaleString('id-ID')}
+                </span>
+                ${isAdmin ? `
+                    <span onclick="deleteSpecificHistory('${item.type}', ${item.wIdx}, '${item.key}', ${item.tglIdx})" 
+                          style="color: var(--accent-red); font-size: 14px; cursor: pointer; padding-left: 5px;">✕</span>
+                ` : ''}
+            </div>
+        </div>`;
+    }).join('');
+}
+        function renderTable(type) {
+    const bln = parseInt(document.getElementById("bulan").value);
+    const tahunEl = document.getElementById("tahun");
+    const selectedYear = (tahunEl && tahunEl.value) ? parseInt(tahunEl.value) : new Date().getFullYear();
+
+    const dCount = new Date(selectedYear, bln + 1, 0).getDate();
+    const search = document.getElementById("searchInput").value.toUpperCase();
+
+    let dTot = Array(dCount).fill(0), gTot = 0;
+
+    // Bagian Header Tabel
+let h = `<table><thead><tr>
+    <th class="st-left-1">NO</th>
+    <th class="st-left-2">NAMA</th>`;
+
+// Ganti bagian looping header tanggal dengan ini
+for(let i=1; i<=dCount; i++) {
+    // Fitur ALL hanya aktif jika di Tab KAS dan Admin sedang Login
+    const isKasTab = (type === 'kas');
+    const headerStyle = (isKasTab && isAdmin) ? 'cursor:pointer; color:var(--accent-gold);' : 'color:var(--text-dim);';
+    const clickAction = (isKasTab && isAdmin) ? `onclick="checkAllDate(${i-1})"` : '';
+    const labelAll = (isKasTab && isAdmin) ? '<br><small style="font-size:7px; display:block; margin-top:2px;">ALL</small>' : '';
+
+    h += `<th ${clickAction} style="${headerStyle} min-width:40px;">
+            ${i}${labelAll}
+          </th>`;
+}
+h += `<th class="st-right">TOTAL</th></tr></thead><tbody>`;
+
+    db[type].forEach((r, ri) => {
+        if(!r.nama.toUpperCase().includes(search)) return;
+
+        let rS = 0;
+        // Pastikan hanya baris ini yang ada untuk bagian nama di tabel utama
+h += `<tr><td class="st-left-1">${ri+1}</td><td class="st-left-2">${r.nama}</td>`;
+
+        for(let i=0; i<dCount; i++){
+const thn = document.getElementById("tahun")?.value || new Date().getFullYear();
+
+const key = `${thn}_${bln}`;
+
+let v = 0;
+if (db[type][ri].history && db[type][ri].history[key]) {
+    v = db[type][ri].history[key][i] || 0;
+}
+
+// 🔥 SALDO tetap pakai nilai asli (biar berkurang saat penarikan)
+rS += v;
+dTot[i] += v;
+
+// 🔥 TAMPILAN dibuat aman (tidak ikut minus)
+let vTampil = v > 0 ? v : 0;
+
+// 3. Tampilkan input (Kode sisa ke bawah tetap sama)
+if(type === 'kas' && !r.nama.startsWith("OUT:")) {
+    // ... kode checkbox ...
+}
+
+            if(type === 'kas' && !r.nama.startsWith("OUT:")) {
+                h += `<td><input type="checkbox" class="check-kas-view" ${v > 0 ? 'checked' : ''} ${!isAdmin ? 'disabled' : ''} onchange="updVal('kas',${ri},${i},this.checked?500:0)"></td>`;
+            }
+           else if(type === 'tabungan' && !r.nama.startsWith("OUT:")) {
+    h += `<td style="padding: 0; min-width: 85px; vertical-align: middle;">
+        <input type="text" 
+            inputmode="numeric" 
+            pattern="[0-9.]*"
+            value="${vTampil ? formatRupiah(vTampil) : ''}" 
+            ${!isAdmin ? 'disabled' : ''} 
+            style="width: 70px; height: 30px; background: #0f172a; border: 1px solid #334155; color: #fff; text-align: center; border-radius: 6px; font-size: 12px; margin: 0 auto; display: block;" 
+            onkeydown="if(event.key==='Enter'){ this.blur(); }"
+            oninput="this.value = formatRupiah(this.value.replace(/\\./g, ''))"
+            onchange="let valMurni = this.value.replace(/\\./g,''); updVal('tabungan', ${ri}, ${i}, valMurni ? parseInt(valMurni) : 0)">
+    </td>`;
+}
+            else {
+                h += `<td style="color:${v<0?'#ef4444':v>0?'#22c55e':'#444'}; font-weight:bold;">${v!==0?v.toLocaleString():'-'}</td>`;
+            }
+        }
+        gTot += rS;
+        h += `<td class="st-right">Rp. ${rS.toLocaleString()}</td></tr>`;
+    });
+
+    h += `</tbody>`;
+    const navHeight = "50px"; 
+
+    // Ganti bagian tfoot di dalam fungsi renderTable
+h += `<tfoot style="position: sticky; bottom: ${navHeight}; z-index: 5000;">
+    <tr style="font-weight:bold;">
+        <td class="st-left-1" style="position:sticky; bottom:${navHeight}; background:#1e293b !important; z-index:5002; border-top:2px solid var(--accent-gold); height:50px;">
+            </td>
+        <td class="st-left-2" style="position:sticky; bottom:${navHeight}; background:#1e293b !important; color:var(--accent-gold); z-index:5002; border-top:2px solid var(--accent-gold); border-right:2px solid var(--accent-gold) !important; font-size:10px;">
+            TOTAL HARIAN
+        </td>`;
+
+    for (let i = 0; i < dCount; i++) {
+        h += `<td style="position:sticky; bottom:${navHeight}; background:#1e293b; color:#fff; z-index:5001; border-top:2px solid var(--accent-gold); min-width:55px; font-size:10px; text-align:center;">${dTot[i] !== 0 ? dTot[i].toLocaleString() : '-'}</td>`;
+    }
+
+    // GANTI BAGIAN AKHIR RENDER TABLE MENJADI INI
+   // UBAH TINGGI DIV SPACER DI AKHIR renderTable
+h += `<td class="st-right" style="position:sticky; bottom:${navHeight}; background:#1e293b !important; color:var(--accent-gold); z-index:5002; border-top:2px solid var(--accent-gold); border-left:2px solid var(--accent-gold) !important; font-size:11px;">Rp. ${gTot.toLocaleString()}</td>
+    </tr></tfoot></table>
+    <div style="height: 180px; width: 100%;"></div>`; // Ditambah menjadi 150px
+
+    document.getElementById('mainTable').innerHTML = h;
+
+    // OTOMATIS GESER KE TANGGAL HARI INI
+    if (bln === new Date().getMonth() && selectedYear === new Date().getFullYear()) {
+        scrollToToday();
+    }
+}
+
+       function updVal(t, r, d, v) {
+    try {
+        if (!db[t] || !db[t][r]) return;
+
+        // 1. Ambil identitas waktu yang sedang dipilih di layar
+        const thn = document.getElementById("tahun").value;
+        const bln = document.getElementById("bulan").value;
+        const key = `${thn}_${bln}`; // Hasilnya misal: "2026_0" (Januari)
+
+        // 2. Jika folder 'history' atau 'bulan' ini belum ada, buat baru
+        if (!db[t][r].history) db[t][r].history = {};
+        if (!db[t][r].history[key]) db[t][r].history[key] = Array(31).fill(0);
+
+       let numValue = parseInt(v) || 0; // "|| 0" memastikan jika kosong jadi angka nol
+    db[t][r].history[key][d] = numValue;
+
+        save();      // Simpan permanen ke LocalStorage
+        renderAll(); // Refresh tampilan agar angka langsung muncul
+    } catch (e) {
+        console.error("Gagal menyimpan data per bulan:", e);
+    }
+}
+function checkAllDate(dayIndex) {
+    if (!isAdmin) {
+        openModal('adminOverlay');
+        return;
+    }
+
+    const confirmCheck = confirm(`Centang semua warga untuk tanggal ${dayIndex + 1}?`);
+    if (!confirmCheck) return;
+
+    const thn = document.getElementById("tahun").value;
+    const bln = document.getElementById("bulan").value;
+    const key = `${thn}_${bln}`;
+
+    db.kas.forEach((warga, idx) => {
+        // Abaikan baris pengeluaran (OUT:)
+        if (warga.nama.startsWith("OUT:")) return;
+
+        if (!warga.history) warga.history = {};
+        if (!warga.history[key]) warga.history[key] = Array(31).fill(0);
+
+        // Isi dengan nominal 500 (standar kas RT 02/19)
+        warga.history[key][dayIndex] = 500;
+    });
+
+    save();
+    renderTable('kas'); // Langsung refresh tabel KAS agar Total muncul kembali
+    alert(`Berhasil mencentang seluruh warga pada tanggal ${dayIndex + 1}`);
+}
+        // --- SIDEBAR LOGIC ---
+        function saveNewWarga() {
+    const nameInput = document.getElementById('newWargaName');
+    const n = nameInput.value.trim().toUpperCase();
+    const rawNominal = document.getElementById('addNominal').value;
+    const nominalAwal = parseInt(rawNominal.replace(/\./g, "")) || 0;
+
+    if (!n) return alert("Masukkan nama warga!");
+
+    const isKas = document.getElementById('checkKas').checked;
+    const isTab = document.getElementById('checkTabungan').checked;
+
+    const thn = document.getElementById("tahun").value;
+    const bln = document.getElementById("bulan").value;
+    const key = `${thn}_${bln}`;
+    
+    const hAwal = {}; 
+    hAwal[key] = Array(31).fill(0);
+    hAwal[key][new Date().getDate()-1] = nominalAwal;
+
+    if (isKas) db.kas.push({ nama: n, history: JSON.parse(JSON.stringify(hAwal)) });
+    if (isTab) db.tabungan.push({ nama: n, history: JSON.parse(JSON.stringify(hAwal)) });
+
+    save();
+    renderAll();
+    
+    nameInput.value = "";
+    document.getElementById('addNominal').value = "";
+    closeModal('addWargaOverlay'); // PERBAIKAN: ID disesuaikan
+    alert("Warga " + n + " berhasil ditambahkan.");
+}
+
+function openEditWarga() {
+    updateEditDropdown(); // Segarkan daftar saat modal dibuka
+    document.getElementById('editWargaName').value = ""; 
+    openModal('editWargaOverlay');
+}
+
+function updateEditDropdown() {
+    const selectEl = document.getElementById('selectWargaEdit');
+    const isKas = document.getElementById('editCheckKas').checked;
+    const isTab = document.getElementById('editCheckTabungan').checked;
+    
+    let daftarNama = [];
+
+    if (isKas && !isTab) {
+        // Hanya ambil warga yang terdaftar di KAS
+        daftarNama = db.kas.map(w => w.nama);
+    } else if (!isKas && isTab) {
+        // Hanya ambil warga yang terdaftar di TABUNGAN
+        daftarNama = db.tabungan.map(w => w.nama);
+    } else if (isKas && isTab) {
+        // Ambil warga yang ada di KEDUA tabel (Sinkron)
+        daftarNama = db.kas.filter(wk => db.tabungan.some(wt => wt.nama === wk.nama)).map(w => w.nama);
+    }
+
+    // Bersihkan dari data kosong atau baris pengeluaran (OUT:)
+    const hasilFilter = daftarNama.filter(n => n && !n.startsWith("OUT:"));
+    
+    if (hasilFilter.length === 0) {
+        selectEl.innerHTML = `<option value="">Tidak ada warga di kategori ini</option>`;
+    } else {
+        selectEl.innerHTML = hasilFilter.map(n => `<option value="${n}">${n}</option>`).join('');
+    }
+}
+
+function updateDeleteDropdown() {
+    const selectEl = document.getElementById('selectWargaDelete');
+    const delKas = document.getElementById('delCheckKas').checked;
+    const delTab = document.getElementById('delCheckTabungan').checked;
+
+    let daftarNama = [];
+
+    // Ambil nama dari kategori yang dipilih
+    if (delKas) db.kas.forEach(w => daftarNama.push(w.nama));
+    if (delTab) db.tabungan.forEach(w => daftarNama.push(w.nama));
+
+    // Hapus duplikat dan bersihkan dari baris pengeluaran (OUT:)
+    const hasilFilter = [...new Set(daftarNama)].filter(n => n && !n.startsWith("OUT:"));
+
+    if (hasilFilter.length === 0) {
+        selectEl.innerHTML = `<option value="">-- Data Kosong --</option>`;
+    } else {
+        selectEl.innerHTML = hasilFilter.map(n => `<option value="${n}">${n}</option>`).join('');
+    }
+}
+
+        function openExp(t) {
+            currentExpType = t;
+            document.getElementById("expTitle").innerText = "KELUAR " + t.toUpperCase();
+            document.getElementById("expDate").value = new Date().toISOString().split("T")[0];
+            const nS = document.getElementById("expNama"), kI = document.getElementById("expKet");
+            if(t === "tabungan") {
+                nS.style.display = "block"; kI.style.display = "none";
+                nS.innerHTML = db.tabungan.map((w,i) => w.nama.startsWith("OUT:")?'':`<option value="${i}">${w.nama}</option>`).join('');
+            } else { nS.style.display = "none"; kI.style.display = "block"; }
+            openModal('expOverlay');
+        }
+
+        function saveExp() {
+    const dateInput = document.getElementById("expDate").value;
+    if (!dateInput) return alert("Pilih tanggal!");
+    
+    const parts = dateInput.split("-");
+    const thn = parts[0];
+    const blnIdx = parseInt(parts[1]) - 1; // Index 0-11
+    const tgl = parseInt(parts[2]);
+    const key = `${thn}_${blnIdx}`;
+    
+    let rawNom = document.getElementById("expNom").value.replace(/\./g, "");
+    const nom = parseInt(rawNom);
+    if(isNaN(nom)) return alert("Isi nominal dengan benar");
+
+    const nilaiMinus = -Math.abs(nom); // Pastikan angka menjadi negatif
+if(currentExpType === "tabungan") {
+    const i = document.getElementById("expNama").value;
+    if (!db.tabungan[i]) return; // Proteksi jika data tidak ditemukan
+
+    if (!db.tabungan[i].history) db.tabungan[i].history = {};
+    if (!db.tabungan[i].history[key]) {
+        db.tabungan[i].history[key] = Array(31).fill(0);
+    }
+
+    // Pastikan nilai yang dikurangi adalah angka murni
+    let currentVal = db.tabungan[i].history[key][tgl-1] || 0;
+    db.tabungan[i].history[key][tgl-1] = currentVal - Math.abs(nom);
+}
+    
+    else {
+        // Pengeluaran Kas Umum
+        let ket = document.getElementById("expKet").value.toUpperCase() || "PENGELUARAN";
+        let historyObj = {};
+        historyObj[key] = Array(31).fill(0);
+        historyObj[key][tgl-1] = nilaiMinus;
+        
+        db.kas.push({
+            nama: "OUT: " + ket, 
+            history: historyObj
+        });
+    }
+
+    save();      // Simpan ke LocalStorage
+    renderAll(); // Update Dashboard & Tabel otomatis
+    closeModal('expOverlay');
+    document.getElementById("expNom").value = "";
+    document.getElementById("expKet").value = "";
+    document.getElementById("expDate").value = "";
+}
+
+function confirmDeleteWarga() {
+    const namaYangDihapus = document.getElementById('selectWargaDelete').value;
+    if (!namaYangDihapus) return;
+
+    if (confirm(`Apakah Anda yakin ingin menghapus data ${namaYangDihapus}?`)) {
+        const hapusKas = document.getElementById('delCheckKas').checked;
+        const hapusTab = document.getElementById('delCheckTabungan').checked;
+
+        if (hapusKas) {
+            db.kas = db.kas.filter(w => w.nama !== namaYangDihapus);
+        }
+        if (hapusTab) {
+            db.tabungan = db.tabungan.filter(w => w.nama !== namaYangDihapus);
+        }
+
+        save(); // Simpan ke localStorage
+        renderAll(); // Segarkan tampilan
+        closeModal('deleteWargaOverlay');
+        alert("Data warga berhasil dihapus.");
+    }
+}
+function confirmReset() {
+    const resetKas = document.getElementById('resetKasCheck').checked;
+    const resetTabungan = document.getElementById('resetTabunganCheck').checked;
+
+    // Cek apakah ada opsi yang dipilih
+    if (!resetKas && !resetTabungan) {
+        alert("Pilih minimal satu data yang ingin dihapus!");
+        return;
+    }
+
+    // Peringatan keamanan sebelum menghapus
+    const pesan = "⚠️ PERINGATAN KERAS ⚠️\nApakah Anda YAKIN ingin mengosongkan data yang dipilih? Data yang terhapus tidak dapat dikembalikan kecuali Anda memiliki file backup!";
+    
+    if (confirm(pesan)) {
+        // Kosongkan array sesuai pilihan
+        if (resetKas) {
+            db.kas = [];
+        }
+        if (resetTabungan) {
+            db.tabungan = [];
+        }
+        
+        // Simpan perubahan dan perbarui tampilan
+        save();
+        renderAll();
+        closeModal('resetOverlay');
+        
+        // Kembalikan centang ke kondisi awal (opsional)
+        document.getElementById('resetKasCheck').checked = true;
+        document.getElementById('resetTabunganCheck').checked = true;
+
+        alert("✅ Data aplikasi berhasil direset.");
+    }
+}
+        window.onload = function () {
+
+    // 🔥 AMANKAN EVENT LISTENER (ANTI ERROR NULL)
+    document.getElementById('editCheckKas')?.addEventListener('change', updateEditDropdown);
+    document.getElementById('editCheckTabungan')?.addEventListener('change', updateEditDropdown);
+    document.getElementById('delCheckKas')?.addEventListener('change', updateDeleteDropdown);
+    document.getElementById('delCheckTabungan')?.addEventListener('change', updateDeleteDropdown);
+
+    // 🔵 SET TAHUN
+    const tEl = document.getElementById("tahun");
+    if (tEl) {
+        const currentYear = new Date().getFullYear();
+        tEl.innerHTML = "";
+
+        for (let i = currentYear - 5; i <= currentYear + 5; i++) {
+            tEl.innerHTML += `<option value="${i}" ${i === currentYear ? 'selected' : ''}>${i}</option>`;
+        }
+    }
+
+    // 🔄 RENDER AWAL
+    renderAll();
+};
+// --- FUNGSI FORMAT RUPIAH AUTOMATIS ---
+function formatRupiah(angka) {
+    if (!angka) return "";
+    let number_string = angka.toString().replace(/[^,\d]/g, ""),
+        split = number_string.split(","),
+        sisa = split[0].length % 3,
+        rupiah = split[0].substr(0, sisa),
+        ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+    if (ribuan) {
+        let separator = sisa ? "." : "";
+        rupiah += separator + ribuan.join(".");
+    }
+    return split[1] != undefined ? rupiah + "," + split[1] : rupiah;
+}
+
+// Fungsi untuk mengarahkan scroll ke kolom tanggal hari ini
+function scrollToToday() {
+    const tableContainer = document.getElementById('mainTable');
+    const today = new Date().getDate();
+    
+    // Mencari kolom tanggal hari ini (No + Nama + Tanggal)
+    const targetCol = tableContainer.querySelector(`thead th:nth-child(${today + 2})`);
+
+    if (targetCol) {
+        // Delay 500ms memberikan jeda agar mata pengguna siap melihat pergerakan
+        setTimeout(() => {
+            const offsetTarget = targetCol.offsetLeft - 120;
+            
+            tableContainer.scrollTo({
+                left: offsetTarget,
+                behavior: 'smooth' // Menjamin gerakan halus di semua browser
+            });
+        }, 500); 
+    }
+}
+
+// Fungsi untuk memicu jendela pemilihan file dengan proteksi PIN
+function triggerLoadData() {
+    // Cek apakah sudah login admin, jika belum minta PIN dulu
+    if (!isAdmin) {
+        openModal('adminOverlay');
+        return;
+    }
+
+    if (confirm("⚠️ PERINGATAN: Mengunggah data baru akan MENGHAPUS & MENIMPA data yang ada saat ini. Pastikan file backup Anda benar. Lanjutkan?")) {
+        const fileInput = document.getElementById('fileInput');
+fileInput.value = "";
+fileInput.click();
+    }
+}
+
+function handleLoadData(e) {
+    if (confirm("⚠️ PERINGATAN: Mengunggah data baru akan MENGGANTI seluruh data yang ada saat ini. Lanjutkan?")) {
+        const r = new FileReader();
+        r.onload = (ev) => {
+            try {
+                const importedData = JSON.parse(ev.target.result);
+                if (importedData.kas && importedData.tabungan) {
+                    db = importedData;
+                    save();
+                    renderAll();
+                    alert("✅ Data berhasil dipulihkan (Restore).");
+                } else {
+                    alert("Format file tidak valid!");
+                }
+            } catch (err) {
+                alert("Gagal membaca file!");
+            }
+        };
+        r.readAsText(e.target.files[0]);
+    }
+    // Reset input file agar bisa memilih file yang sama lagi jika perlu
+    e.target.value = '';
+}
+
+function deleteSpecificHistory(type, wIdx, key, tglIdx) {
+    if (confirm("Hapus riwayat ini? (Saldo akan TETAP terpotong/tidak akan bertambah)")) {
+        
+        // Pastikan objek data tersedia
+        if (!db[type][wIdx]) return;
+
+        // Logika: Jangan ubah nilainya menjadi 0 agar saldo tidak naik.
+        // Kita gunakan sistem 'hidden' agar tidak muncul di tampilan.
+
+        if (db[type][wIdx].nama.startsWith("OUT:")) {
+            // Untuk Pengeluaran Umum, ganti awalan agar tidak terdeteksi riwayat
+            db[type][wIdx].nama = db[type][wIdx].nama.replace("OUT:", "HIDDEN_OUT:");
+        } else {
+            // Untuk warga, tandai index tanggal tersebut agar disembunyikan
+            if (!db[type][wIdx].hidden_history) db[type][wIdx].hidden_history = {};
+            if (!db[type][wIdx].hidden_history[key]) db[type][wIdx].hidden_history[key] = [];
+            
+            db[type][wIdx].hidden_history[key].push(tglIdx);
+        }
+
+        save();
+        renderAll();
+        alert("Riwayat berhasil dihapus dari daftar.");
+    }
+}
+
+function exportExcel() {
+    // 1. Cek apakah berada di Dashboard
+    if (currentTab === 'dash') {
+        alert("Silakan pilih tab KAS atau TABUNGAN terlebih dahulu untuk ekspor.");
+        return;
+    }
+
+    // 2. Tambah Konfirmasi Batal/Lanjut
+    const pesan = `Apakah Anda ingin mengekspor data ${currentTab.toUpperCase()} ke Excel?`;
+    if (!confirm(pesan)) {
+        console.log("Ekspor dibatalkan oleh pengguna.");
+        return; // Berhenti di sini jika pengguna klik 'Batal'
+    }
+
+    // 3. Proses Ekspor jika klik 'OK'
+    const table = document.querySelector("#mainTable table");
+    if (!table) return alert("Tabel tidak ditemukan!");
+
+    try {
+        const wb = XLSX.utils.table_to_book(table, { sheet: "Laporan RT" });
+        const tgl = new Date().toLocaleDateString('id-ID').replace(/\//g, '-');
+        
+        XLSX.writeFile(wb, `LAPORAN_${currentTab.toUpperCase()}_${tgl}.xlsx`);
+        alert("✅ File Excel berhasil dibuat.");
+    } catch (err) {
+        console.error("Error saat ekspor:", err);
+        alert("❌ Gagal mengekspor data.");
+    }
+}
+function openDeleteWarga() {
+    // Pastikan dropdown diisi dulu sebelum modal tampil
+    updateDeleteDropdown(); 
+    openModal('deleteWargaOverlay');
+}
+function exportData() {
+    // 1. Tambahkan Konfirmasi Batal
+    const tglSekarang = new Date().toLocaleDateString('id-ID');
+    const konfirmasi = confirm(`Apakah Anda ingin membuat file Backup data RT per tanggal ${tglSekarang}?`);
+    
+    if (!konfirmasi) {
+        console.log("Backup dibatalkan oleh pengguna.");
+        return; // Berhenti jika klik 'Batal'
+    }
+
+    try {
+        // 2. Proses pembuatan file JSON
+        const dataStr = JSON.stringify(db, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        
+        // Format nama file: BACKUP_RT_26-03-2026.json
+        const tglFile = new Date().toLocaleDateString('id-ID').replace(/\//g, '-');
+        const fileName = `BACKUP_RT_0219_${tglFile}.json`;
+
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(dataBlob);
+        link.download = fileName;
+        
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        alert("✅ Backup Berhasil!\nSimpan file " + fileName + " di tempat aman.");
+    } catch (err) {
+        console.error("Gagal Backup:", err);
+        alert("❌ Gagal membuat file backup: " + err.message);
+    }
+}
+function saveEditWarga() {
+    const namaLama = document.getElementById('selectWargaEdit').value;
+    const namaBaru = document.getElementById('editWargaName').value.trim().toUpperCase();
+    
+    if (!namaBaru) return alert("Masukkan nama baru!");
+    
+    // Ubah di semua tabel agar sinkron
+    let ditemukan = false;
+    [db.kas, db.tabungan].forEach(tabel => {
+        let warga = tabel.find(x => x.nama === namaLama);
+        if (warga) {
+            warga.nama = namaBaru;
+            ditemukan = true;
+        }
+    });
+
+    if (ditemukan) {
+        save(); 
+        renderAll(); 
+        closeModal('editWargaOverlay');
+        alert("✅ Nama berhasil diubah di semua sistem.");
+    }
+}
+// Fungsi ini membuat titik otomatis saat Bapak mengetik
+function formatInputRibuan(el) {
+    let val = el.value.replace(/\D/g, ""); 
+    if (val !== "") {
+        el.value = parseInt(val).toLocaleString('id-ID');
+    }
+}
+
+// Fungsi ini mengambil angka murni (tanpa titik) untuk disimpan ke sistem
+function ambilAngkaMurni(id) {
+    let val = document.getElementById(id).value;
+    return parseInt(val.replace(/\./g, "")) || 0;
+}
+</script>
+<input type="file" id="fileInput" style="display:none;" accept=".json" onchange="handleLoadData(event)">
+</body>
+</html>
